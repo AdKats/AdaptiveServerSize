@@ -18,146 +18,154 @@
  */
 
 using System;
-using System.IO;
-using System.Text;
-using System.Threading;
-using System.Reflection;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
+using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 using PRoCon.Core;
-using PRoCon.Core.Plugin;
-using PRoCon.Core.Plugin.Commands;
-using PRoCon.Core.Players;
-using PRoCon.Core.Players.Items;
 using PRoCon.Core.Battlemap;
 using PRoCon.Core.Maps;
+using PRoCon.Core.Players;
+using PRoCon.Core.Players.Items;
+using PRoCon.Core.Plugin;
+using PRoCon.Core.Plugin.Commands;
 
-namespace PRoConEvents {
-    public class CAdaptiveServerSize : PRoConPluginAPI, IPRoConPluginInterface {
+namespace PRoConEvents
+{
+    public class CAdaptiveServerSize : PRoConPluginAPI, IPRoConPluginInterface
+    {
 
-        private string m_strHostName;
-        private string m_strPort;
-        private string m_strPRoConVersion;
+        private String m_strHostName;
+        private String m_strPort;
+        private String m_strPRoConVersion;
 
         private enumBoolYesNo m_enServerSize;
         private enumBoolYesNo m_enAssumeMax;
-        private string m_strRestartOption;
-        private int m_iWaitingPlayersNeeded;
-        private int m_iRestartLimit;
-        private int m_iMaxServerSize;
-        private int[] m_iPlayerServerSize;
-        private int m_iServerSizeAtStart;
-        private int m_iRestartOption;
-        private int m_iCurrentServerSize;
-        private int m_iCurrentPlayerCount;
-        private bool m_blRoundEnded;
-        private bool m_blNextRoundStarted;
-        private string m_strCurrentGameMode;
-        private long m_lLastLevelLoaded;
-        private long m_lLastRoundEnded;
-        private Dictionary<string, int> m_DGameModeMax;
-        private Dictionary<string, string> m_DGameModePublic;
-        private Dictionary<string, long> m_DPlayerJoined;
-        private int m_iCurrentGameModeMax;
-        private int m_iDesiredServerSize;
-        private int m_iCurrentRoundTime;
-        private long m_lLastMessage;
-        private List<string> m_LStartMessageShown;
-        private bool m_blRestartRequested;
+        private String m_strRestartOption;
+        private Int32 m_iWaitingPlayersNeeded;
+        private Int32 m_iRestartLimit;
+        private Int32 m_iMaxServerSize;
+        private Int32[] m_iPlayerServerSize;
+        private Int32 m_iServerSizeAtStart;
+        private Int32 m_iRestartOption;
+        private Int32 m_iCurrentServerSize;
+        private Int32 m_iCurrentPlayerCount;
+        private Boolean m_blRoundEnded;
+        private Boolean m_blNextRoundStarted;
+        private String m_strCurrentGameMode;
+        private Int64 m_lLastLevelLoaded;
+        private Int64 m_lLastRoundEnded;
+        private Dictionary<String, Int32> m_DGameModeMax;
+        private Dictionary<String, String> m_DGameModePublic;
+        private Dictionary<String, Int64> m_DPlayerJoined;
+        private Int32 m_iCurrentGameModeMax;
+        private Int32 m_iDesiredServerSize;
+        private Int32 m_iCurrentRoundTime;
+        private Int64 m_lLastMessage;
+        private List<String> m_LStartMessageShown;
+        private Boolean m_blRestartRequested;
 
         private enumBoolYesNo m_enShowMessages;
-        private int m_iMessageMaxUsers;
-        private string m_sWelcome1;
-        private string m_sWelcome2;
-        private string m_sOnJoin1;
-        private string m_sOnJoin2;
+        private Int32 m_iMessageMaxUsers;
+        private String m_sWelcome1;
+        private String m_sWelcome2;
+        private String m_sOnJoin1;
+        private String m_sOnJoin2;
 
         private enumBoolYesNo m_enIdleKick;
-        private int m_iDisableIdleKickUntil;
-        private int m_iDesiredIdleKick;
-        private int m_iCurrentIdleKick;
+        private Int32 m_iDisableIdleKickUntil;
+        private Int32 m_iDesiredIdleKick;
+        private Int32 m_iCurrentIdleKick;
 
         private enumBoolYesNo m_enQuickMatch;
-        private int m_iDefaultRoundStart;
-        private int m_iDefaultRoundRestart;
-        private int m_iQuickMatchApplied;
+        private Int32 m_iDefaultRoundStart;
+        private Int32 m_iDefaultRoundRestart;
+        private Int32 m_iQuickMatchApplied;
 
         private enumBoolYesNo m_enDoDebugOutput;
 
-        private bool m_isPluginEnabled;
-        private bool m_isPluginInitialized;
-        private string m_strServerGameType;
-        private string m_strGameMod;
-        private string m_strServerVersion;
+        private Boolean m_isPluginEnabled;
+        private Boolean m_isPluginInitialized;
+        private String m_strServerGameType;
+        private String m_strGameMod;
+        private String m_strServerVersion;
 
-        public CAdaptiveServerSize() {
+        public CAdaptiveServerSize()
+        {
 
-            this.m_enServerSize            = enumBoolYesNo.No;
-            this.m_enAssumeMax             = enumBoolYesNo.No;
-            this.m_iMaxServerSize          = 64;
-            this.m_iPlayerServerSize       = new int[65] {8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64};
-            this.m_iServerSizeAtStart      = 0;
-            this.m_iCurrentServerSize      = 0;
-            this.m_iCurrentPlayerCount     = 0;
-            this.m_blRoundEnded            = false;
-            this.m_blNextRoundStarted      = false;
-            this.m_strCurrentGameMode      = "RushLarge0";
-            this.m_lLastLevelLoaded        = DateTime.UtcNow.Ticks/10000000;
-            this.m_lLastRoundEnded         = DateTime.UtcNow.Ticks/10000000;
-            this.m_iCurrentGameModeMax     = 64;
-            this.m_iDesiredServerSize      = 64;
-            this.m_iCurrentRoundTime       = -1;
-            this.m_lLastMessage            = DateTime.UtcNow.Ticks/10000000;
-            this.m_blRestartRequested      = false;
+            this.m_enServerSize = enumBoolYesNo.No;
+            this.m_enAssumeMax = enumBoolYesNo.No;
+            this.m_iMaxServerSize = 64;
+            this.m_iPlayerServerSize = new Int32[65] { 8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64 };
+            this.m_iServerSizeAtStart = 0;
+            this.m_iCurrentServerSize = 0;
+            this.m_iCurrentPlayerCount = 0;
+            this.m_blRoundEnded = false;
+            this.m_blNextRoundStarted = false;
+            this.m_strCurrentGameMode = "RushLarge0";
+            this.m_lLastLevelLoaded = DateTime.UtcNow.Ticks / 10000000;
+            this.m_lLastRoundEnded = DateTime.UtcNow.Ticks / 10000000;
+            this.m_iCurrentGameModeMax = 64;
+            this.m_iDesiredServerSize = 64;
+            this.m_iCurrentRoundTime = -1;
+            this.m_lLastMessage = DateTime.UtcNow.Ticks / 10000000;
+            this.m_blRestartRequested = false;
 
-            this.m_DGameModeMax            = new Dictionary<string, int>();
-            this.m_DGameModePublic         = new Dictionary<string, string>();
-            this.m_DPlayerJoined           = new Dictionary<string, long>();
-            this.m_LStartMessageShown      = new List<string>();
+            this.m_DGameModeMax = new Dictionary<String, Int32>();
+            this.m_DGameModePublic = new Dictionary<String, String>();
+            this.m_DPlayerJoined = new Dictionary<String, Int64>();
+            this.m_LStartMessageShown = new List<String>();
 
-            this.m_enShowMessages          = enumBoolYesNo.No;
-            this.m_iMessageMaxUsers        = 3;
-            this.m_sWelcome1               = "Welcome [soldierName]! Please stick around to help us get our server going!";
-            this.m_sWelcome2               = "We will notify you when new players are joining!";
-            this.m_sOnJoin1                = "Please stand by; [joinCount] more player(s) are joining.";
-            this.m_sOnJoin2                = "Keep in mind that it may take over a minute for their game(s) to load.";
+            this.m_enShowMessages = enumBoolYesNo.No;
+            this.m_iMessageMaxUsers = 3;
+            this.m_sWelcome1 = "Welcome [soldierName]! Please stick around to help us get our server going!";
+            this.m_sWelcome2 = "We will notify you when new players are joining!";
+            this.m_sOnJoin1 = "Please stand by; [joinCount] more player(s) are joining.";
+            this.m_sOnJoin2 = "Keep in mind that it may take over a minute for their game(s) to load.";
 
-            this.m_enIdleKick              = enumBoolYesNo.No;
-            this.m_iDisableIdleKickUntil   = 8;
-            this.m_iDesiredIdleKick        = 300;
-            this.m_iCurrentIdleKick        = -1;
+            this.m_enIdleKick = enumBoolYesNo.No;
+            this.m_iDisableIdleKickUntil = 8;
+            this.m_iDesiredIdleKick = 300;
+            this.m_iCurrentIdleKick = -1;
 
-            this.m_enQuickMatch            = enumBoolYesNo.No;
-            this.m_iDefaultRoundStart      = 4;
-            this.m_iDefaultRoundRestart    = 2;
-            this.m_iQuickMatchApplied      = -1;
+            this.m_enQuickMatch = enumBoolYesNo.No;
+            this.m_iDefaultRoundStart = 4;
+            this.m_iDefaultRoundRestart = 2;
+            this.m_iQuickMatchApplied = -1;
 
-            this.m_enDoDebugOutput         = enumBoolYesNo.No;
+            this.m_enDoDebugOutput = enumBoolYesNo.No;
 
-            this.m_isPluginEnabled         = false;
-            this.m_isPluginInitialized     = false;
-            this.m_strServerGameType       = "none";
+            this.m_isPluginEnabled = false;
+            this.m_isPluginInitialized = false;
+            this.m_strServerGameType = "none";
         }
 
-        public string GetPluginName() {
+        public String GetPluginName()
+        {
             return "Adaptive Server Size";
         }
 
-        public string GetPluginVersion() {
+        public String GetPluginVersion()
+        {
             return "1.3.5.3";
         }
 
-        public string GetPluginAuthor() {
+        public String GetPluginAuthor()
+        {
             return "falcontx";
         }
 
-        public string GetPluginWebsite() {
+        public String GetPluginWebsite()
+        {
             return "www.phogue.net/forumvb/showthread.php?2939";
         }
 
-        public string GetPluginDescription() {
+        public String GetPluginDescription()
+        {
             return @"
 <p>If you find this plugin useful, please consider supporting falcontx's development efforts. Donations help support the servers used for development and provide incentive for additional features and new plugins! Any amount would be appreciated!</p>
 
@@ -324,25 +332,27 @@ namespace PRoConEvents {
         }
 
         #region pluginSetup
-        public void OnPluginLoadingEnv(List<string> lstPluginEnv) {
+        public void OnPluginLoadingEnv(List<String> lstPluginEnv)
+        {
             this.m_strServerGameType = lstPluginEnv[1].ToLower();
             this.m_strGameMod = lstPluginEnv[2];
             this.m_strServerVersion = lstPluginEnv[3];
         }
 
-        public void OnPluginLoaded(string strHostName, string strPort, string strPRoConVersion) {
+        public void OnPluginLoaded(String strHostName, String strPort, String strPRoConVersion)
+        {
             this.m_strHostName = strHostName;
             this.m_strPort = strPort;
             this.m_strPRoConVersion = strPRoConVersion;
 
             if (this.m_strServerGameType == "bf4")
             {
-                this.m_iPlayerServerSize = new int[65] {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 24, 24, 24, 24, 32, 32, 32, 32, 32, 32, 32, 32, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64};
+                this.m_iPlayerServerSize = new Int32[65] { 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 24, 24, 24, 24, 32, 32, 32, 32, 32, 32, 32, 32, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64 };
             }
-            foreach (string strGameModePublic in this.GetMapList("{GameMode}").ToArray())
+            foreach (String strGameModePublic in this.GetMapList("{GameMode}").ToArray())
             {
-                string strGameMode = this.GetMapByFormattedName("{GameMode}", strGameModePublic).PlayList; // get system gamemode from public game mode
-                int size = 64;
+                String strGameMode = this.GetMapByFormattedName("{GameMode}", strGameModePublic).PlayList; // get system gamemode from public game mode
+                Int32 size = 64;
                 if (strGameMode.CompareTo("RushLarge0") == 0 || strGameMode.CompareTo("ConquestSmall0") == 0 || strGameMode.CompareTo("ConquestAssaultSmall0") == 0 || strGameMode.CompareTo("ConquestAssaultSmall1") == 0 || strGameMode.CompareTo("Obliteration0") == 0 || strGameMode.CompareTo("TurfWarSmall0") == 0 || strGameMode.CompareTo("Heist0") == 0 || strGameMode.CompareTo("Hotwire0") == 0 || strGameMode.CompareTo("BloodMoney0") == 0)
                 {
                     size = 32;
@@ -366,24 +376,27 @@ namespace PRoConEvents {
                 this.m_DGameModeMax.Add(strGameMode, size);
                 this.m_DGameModePublic.Add(strGameMode, strGameModePublic);
             }
-      
+
             this.RegisterEvents(this.GetType().Name, "OnLogin", "OnServerInfo", "OnRoundOverTeamScores", "OnLevelLoaded", "OnRestartLevel", "OnRunNextLevel", "OnPlayerLimit", "OnListPlayers", "OnPlayerJoin", "OnPlayerSpawned", "OnPlayerLeft", "OnPlayerTeamChange");
         }
 
-        public void OnPluginEnable() {
+        public void OnPluginEnable()
+        {
             this.m_isPluginEnabled = true;
             ResetVars();
             this.ExecuteCommand("procon.protected.pluginconsole.write", "^bAdaptiveServerSize: ^2Enabled!");
             this.ExecuteCommand("procon.protected.send", "vars.maxPlayers");
         }
 
-        public void OnPluginDisable() {
+        public void OnPluginDisable()
+        {
             this.m_isPluginEnabled = false;
             //this.ExecuteCommand("procon.protected.send", "vars.maxPlayers", this.m_iServerSizeAtStart.ToString());
-            this.ExecuteCommand("procon.protected.pluginconsole.write", "^bAdaptiveServerSize: ^1Disabled =(" );
+            this.ExecuteCommand("procon.protected.pluginconsole.write", "^bAdaptiveServerSize: ^1Disabled =(");
         }
 
-        private void ResetVars() {
+        private void ResetVars()
+        {
             this.m_isPluginInitialized = false;
             this.m_iServerSizeAtStart = 0;
             this.m_iCurrentRoundTime = -1;
@@ -391,25 +404,27 @@ namespace PRoConEvents {
             this.m_blRoundEnded = false;
             this.m_blNextRoundStarted = false;
             this.m_DPlayerJoined.Clear();
-            this.m_LStartMessageShown = new List<string>();
+            this.m_LStartMessageShown = new List<String>();
             this.m_iCurrentIdleKick = -1;
         }
 
         // Lists only variables you want shown.. for instance enabling one option might hide another option 
         // It's the best I got until I implement a way for plugins to display their own small interfaces.
-        public List<CPluginVariable> GetDisplayPluginVariables() {
+        public List<CPluginVariable> GetDisplayPluginVariables()
+        {
 
             List<CPluginVariable> lstReturn = new List<CPluginVariable>();
 
             lstReturn.Add(new CPluginVariable("Adaptive Server Size|Enable adaptive server size?", typeof(enumBoolYesNo), this.m_enServerSize));
             if (this.m_enServerSize == enumBoolYesNo.Yes)
-            { 
-                if (this.m_strServerGameType != "bfhl") {
+            {
+                if (this.m_strServerGameType != "bfhl")
+                {
                     lstReturn.Add(new CPluginVariable("Adaptive Server Size|On startup, assume round started at max server size?", typeof(enumBoolYesNo), this.m_enAssumeMax));
                 }
                 lstReturn.Add(new CPluginVariable("Adaptive Server Size|Display welcome/join messages to help start server?", typeof(enumBoolYesNo), this.m_enShowMessages));
                 if (this.m_enShowMessages == enumBoolYesNo.Yes)
-                { 
+                {
                     lstReturn.Add(new CPluginVariable("Adaptive Server Size|    Display messages until how many players are on?", this.m_iMessageMaxUsers.GetType(), this.m_iMessageMaxUsers));
                     lstReturn.Add(new CPluginVariable("Adaptive Server Size|    Welcome message 1", this.m_sWelcome1.GetType(), this.m_sWelcome1));
                     lstReturn.Add(new CPluginVariable("Adaptive Server Size|    Welcome message 2", this.m_sWelcome2.GetType(), this.m_sWelcome2));
@@ -417,15 +432,15 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("Adaptive Server Size|    Player joining message 2", this.m_sOnJoin2.GetType(), this.m_sOnJoin2));
                 }
                 lstReturn.Add(new CPluginVariable("Adaptive Server Size|Maximum server size", this.m_iMaxServerSize.GetType(), this.m_iMaxServerSize));
-                for (int i = 0; i <= this.m_iMaxServerSize; i++)
+                for (Int32 i = 0; i <= this.m_iMaxServerSize; i++)
                 {
                     if (this.m_iPlayerServerSize[i] > this.m_iMaxServerSize)
                     {
                         this.m_iPlayerServerSize[i] = this.m_iMaxServerSize;
                     }
-                    lstReturn.Add(new CPluginVariable("Adaptive Server Size|    Size with "+ i +" players", this.m_iPlayerServerSize[i].GetType(), this.m_iPlayerServerSize[i]));
+                    lstReturn.Add(new CPluginVariable("Adaptive Server Size|    Size with " + i + " players", this.m_iPlayerServerSize[i].GetType(), this.m_iPlayerServerSize[i]));
                 }
-                foreach (KeyValuePair<string, string> gameMode in this.m_DGameModePublic)
+                foreach (KeyValuePair<String, String> gameMode in this.m_DGameModePublic)
                 {
                     if (this.m_DGameModeMax[gameMode.Key] > this.m_iMaxServerSize)
                     {
@@ -436,7 +451,7 @@ namespace PRoConEvents {
             }
             lstReturn.Add(new CPluginVariable("Adaptive Idle Kick|Enable adaptive idle kick?", typeof(enumBoolYesNo), this.m_enIdleKick));
             if (this.m_enIdleKick == enumBoolYesNo.Yes)
-            { 
+            {
                 lstReturn.Add(new CPluginVariable("Adaptive Idle Kick|Disable idle kick until how many players are on?", this.m_iDisableIdleKickUntil.GetType(), this.m_iDisableIdleKickUntil));
                 lstReturn.Add(new CPluginVariable("Adaptive Idle Kick|Desired idle kick time, in seconds", this.m_iDesiredIdleKick.GetType(), this.m_iDesiredIdleKick));
             }
@@ -446,7 +461,8 @@ namespace PRoConEvents {
         }
 
         // Lists all of the plugin variables.
-        public List<CPluginVariable> GetPluginVariables() {
+        public List<CPluginVariable> GetPluginVariables()
+        {
             List<CPluginVariable> lstReturn = new List<CPluginVariable>();
 
             lstReturn.Add(new CPluginVariable("Enable adaptive server size?", typeof(enumBoolYesNo), this.m_enServerSize));
@@ -458,13 +474,13 @@ namespace PRoConEvents {
             lstReturn.Add(new CPluginVariable("    Player joining message 1", this.m_sOnJoin1.GetType(), this.m_sOnJoin1));
             lstReturn.Add(new CPluginVariable("    Player joining message 2", this.m_sOnJoin2.GetType(), this.m_sOnJoin2));
             lstReturn.Add(new CPluginVariable("Maximum server size", this.m_iMaxServerSize.GetType(), this.m_iMaxServerSize));
-            foreach (KeyValuePair<string, string> gameMode in this.m_DGameModePublic)
+            foreach (KeyValuePair<String, String> gameMode in this.m_DGameModePublic)
             {
                 lstReturn.Add(new CPluginVariable("Maximum " + gameMode.Value + " size", this.m_DGameModeMax[gameMode.Key].GetType(), this.m_DGameModeMax[gameMode.Key]));
             }
-            for (int i = 0; i <= this.m_iMaxServerSize; i++)
+            for (Int32 i = 0; i <= this.m_iMaxServerSize; i++)
             {
-                lstReturn.Add(new CPluginVariable("    Size with "+ i +" players", this.m_iPlayerServerSize[i].GetType(), this.m_iPlayerServerSize[i]));
+                lstReturn.Add(new CPluginVariable("    Size with " + i + " players", this.m_iPlayerServerSize[i].GetType(), this.m_iPlayerServerSize[i]));
             }
             lstReturn.Add(new CPluginVariable("Enable adaptive idle kick?", typeof(enumBoolYesNo), this.m_enIdleKick));
             lstReturn.Add(new CPluginVariable("Disable idle kick until how many players are on?", this.m_iDisableIdleKickUntil.GetType(), this.m_iDisableIdleKickUntil));
@@ -477,9 +493,9 @@ namespace PRoConEvents {
         // Allways be suspicious of strValue's actual value.  A command in the console can
         // by the user can put any kind of data it wants in strValue.
         // use type.TryParse
-        public void SetPluginVariable(string strVariable, string strValue)
+        public void SetPluginVariable(String strVariable, String strValue)
         {
-            int iValue = 0;
+            Int32 iValue = 0;
 
             if (strVariable.CompareTo("Enable adaptive server size?") == 0 && Enum.IsDefined(typeof(enumBoolYesNo), strValue) == true)
             {
@@ -493,18 +509,18 @@ namespace PRoConEvents {
             {
                 this.m_enShowMessages = (enumBoolYesNo)Enum.Parse(typeof(enumBoolYesNo), strValue);
             }
-            else if (strVariable.CompareTo("    Display messages until how many players are on?") == 0 && int.TryParse(strValue, out iValue) == true)
-			{
-				if (iValue < 1)
-				{
-					iValue = 1;
-				}
+            else if (strVariable.CompareTo("    Display messages until how many players are on?") == 0 && Int32.TryParse(strValue, out iValue) == true)
+            {
+                if (iValue < 1)
+                {
+                    iValue = 1;
+                }
                 else if (iValue > 64)
                 {
                     iValue = 64;
                 }
-				this.m_iMessageMaxUsers = iValue;
-			}
+                this.m_iMessageMaxUsers = iValue;
+            }
             else if (strVariable.CompareTo("    Welcome message 1") == 0)
             {
                 this.m_sWelcome1 = strValue;
@@ -522,7 +538,7 @@ namespace PRoConEvents {
                 this.m_sOnJoin2 = strValue;
             }
 
-            else if (strVariable.CompareTo("Maximum server size") == 0 && int.TryParse(strValue, out iValue) == true)
+            else if (strVariable.CompareTo("Maximum server size") == 0 && Int32.TryParse(strValue, out iValue) == true)
             {
                 if (iValue < 1)
                 {
@@ -535,9 +551,9 @@ namespace PRoConEvents {
                 this.m_iMaxServerSize = iValue;
             }
 
-            else if (strVariable.Substring(0,8).CompareTo("Maximum ") == 0 && int.TryParse(strValue, out iValue) == true)
+            else if (strVariable.Substring(0, 8).CompareTo("Maximum ") == 0 && Int32.TryParse(strValue, out iValue) == true)
             {
-                string strGameMode = "";
+                String strGameMode = "";
                 if (strVariable.Substring(8).CompareTo("Conquest Assault64 size") == 0)
                 {
                     strGameMode = "ConquestAssaultLarge0";
@@ -574,9 +590,9 @@ namespace PRoConEvents {
                     this.m_DGameModeMax[strGameMode] = this.m_iMaxServerSize;
                 }
             }
-            else if (strVariable.Substring(0,13).CompareTo("    Size with") == 0 && int.TryParse(strValue, out iValue) == true)
+            else if (strVariable.Substring(0, 13).CompareTo("    Size with") == 0 && Int32.TryParse(strValue, out iValue) == true)
             {
-                int i = int.Parse(strVariable.Substring(14,2).Trim());
+                Int32 i = Int32.Parse(strVariable.Substring(14, 2).Trim());
                 this.m_iPlayerServerSize[i] = iValue;
 
                 if (iValue < 1)
@@ -596,7 +612,7 @@ namespace PRoConEvents {
             {
                 this.m_enIdleKick = (enumBoolYesNo)Enum.Parse(typeof(enumBoolYesNo), strValue);
             }
-            else if (strVariable.CompareTo("Disable idle kick until how many players are on?") == 0 && int.TryParse(strValue, out iValue) == true)
+            else if (strVariable.CompareTo("Disable idle kick until how many players are on?") == 0 && Int32.TryParse(strValue, out iValue) == true)
             {
                 if (iValue < 1)
                 {
@@ -608,7 +624,7 @@ namespace PRoConEvents {
                 }
                 this.m_iDisableIdleKickUntil = iValue;
             }
-            else if (strVariable.CompareTo("Desired idle kick time, in seconds") == 0 && int.TryParse(strValue, out iValue) == true)
+            else if (strVariable.CompareTo("Desired idle kick time, in seconds") == 0 && Int32.TryParse(strValue, out iValue) == true)
             {
                 this.m_iDesiredIdleKick = iValue;
 
@@ -625,67 +641,82 @@ namespace PRoConEvents {
             }
         }
 
-        private void UnregisterAllCommands() {
+        private void UnregisterAllCommands()
+        {
         }
 
-        private void SetupHelpCommands() {
+        private void SetupHelpCommands()
+        {
         }
 
-        private void RegisterAllCommands() {
+        private void RegisterAllCommands()
+        {
         }
 
         #endregion
         #region Events
 
-        public override void OnLogin() {
+        public override void OnLogin()
+        {
             ResetVars();
             this.ExecuteCommand("procon.protected.send", "vars.maxPlayers");
             this.ExecuteCommand("procon.protected.send", "serverInfo");
         }
 
-        public override void OnServerInfo(CServerInfo csiServerInfo) {
+        public override void OnServerInfo(CServerInfo csiServerInfo)
+        {
             //this.m_iCurrentPlayerCount = csiServerInfo.PlayerCount;
             this.m_iCurrentRoundTime = csiServerInfo.RoundTime;
             this.m_strCurrentGameMode = csiServerInfo.GameMode;
             this.m_iCurrentGameModeMax = this.m_DGameModeMax[this.m_strCurrentGameMode];
-            if (this.m_blRoundEnded == true && DateTime.UtcNow.Ticks/10000000 - this.m_lLastRoundEnded > 120) {
+            if (this.m_blRoundEnded == true && DateTime.UtcNow.Ticks / 10000000 - this.m_lLastRoundEnded > 120)
+            {
                 WritePluginConsole("INFO -> Detected level loaded. (timer)");
                 StartRound();
             }
         }
 
-        public override void OnRoundOverTeamScores(List<TeamScore> teamScores) {
-            if (this.m_enServerSize == enumBoolYesNo.Yes) {
+        public override void OnRoundOverTeamScores(List<TeamScore> teamScores)
+        {
+            if (this.m_enServerSize == enumBoolYesNo.Yes)
+            {
                 this.m_blRoundEnded = true;
-                this.m_lLastRoundEnded = DateTime.UtcNow.Ticks/10000000;
+                this.m_lLastRoundEnded = DateTime.UtcNow.Ticks / 10000000;
                 WritePluginConsole("INFO -> Round ended.");
-                if (this.m_strServerGameType != "bfhl") {
+                if (this.m_strServerGameType != "bfhl")
+                {
                     this.ExecuteCommand("procon.protected.tasks.add", "CAdaptiveServerSize", "60", "1", "1", "procon.protected.plugins.call", "CAdaptiveServerSize", "SetMaxTemp");
                 }
             }
         }
 
-        public override void OnRestartLevel() {
-            if (this.m_enServerSize == enumBoolYesNo.Yes) {
+        public override void OnRestartLevel()
+        {
+            if (this.m_enServerSize == enumBoolYesNo.Yes)
+            {
                 WritePluginConsole("INFO -> Round restarted.");
-                this.m_lLastRoundEnded = DateTime.UtcNow.Ticks/10000000 - 90;
+                this.m_lLastRoundEnded = DateTime.UtcNow.Ticks / 10000000 - 90;
                 this.m_blRoundEnded = true;
                 this.m_blRestartRequested = false;
                 SetMaxTemp();
             }
         }
 
-        public override void OnRunNextLevel() {
-            if (this.m_enServerSize == enumBoolYesNo.Yes) {
+        public override void OnRunNextLevel()
+        {
+            if (this.m_enServerSize == enumBoolYesNo.Yes)
+            {
                 WritePluginConsole("INFO -> Next round requested.");
-                this.m_lLastRoundEnded = DateTime.UtcNow.Ticks/10000000 - 90;
+                this.m_lLastRoundEnded = DateTime.UtcNow.Ticks / 10000000 - 90;
                 this.m_blRoundEnded = true;
                 SetMaxTemp();
             }
         }
 
-        public override void OnLevelLoaded(string mapFileName, string Gamemode, int roundsPlayed, int roundsTotal) {
-            if (this.m_enServerSize == enumBoolYesNo.Yes && DateTime.UtcNow.Ticks/10000000 - this.m_lLastLevelLoaded > 5 && !this.m_blRestartRequested) {
+        public override void OnLevelLoaded(String mapFileName, String Gamemode, Int32 roundsPlayed, Int32 roundsTotal)
+        {
+            if (this.m_enServerSize == enumBoolYesNo.Yes && DateTime.UtcNow.Ticks / 10000000 - this.m_lLastLevelLoaded > 5 && !this.m_blRestartRequested)
+            {
                 if (this.m_blRoundEnded == false)
                 {
                     this.m_blRestartRequested = true;
@@ -699,28 +730,33 @@ namespace PRoConEvents {
             }
         }
 
-        public override void OnPlayerSpawned(string soldierName, Inventory spawnedInventory) {
-            if (this.m_blRoundEnded == true && DateTime.UtcNow.Ticks/10000000 - this.m_lLastRoundEnded > 60) {
+        public override void OnPlayerSpawned(String soldierName, Inventory spawnedInventory)
+        {
+            if (this.m_blRoundEnded == true && DateTime.UtcNow.Ticks / 10000000 - this.m_lLastRoundEnded > 60)
+            {
                 WritePluginConsole("INFO -> Detected level loaded. (player spawn)");
                 StartRound();
             }
         }
 
-        private void StartRound() {
-            this.m_lLastLevelLoaded = DateTime.UtcNow.Ticks/10000000;
+        private void StartRound()
+        {
+            this.m_lLastLevelLoaded = DateTime.UtcNow.Ticks / 10000000;
             this.m_blRoundEnded = false;
             this.m_blNextRoundStarted = false;
             this.m_iServerSizeAtStart = this.m_iCurrentServerSize;
             this.ExecuteCommand("procon.protected.send", "admin.listPlayers all");
         }
-      
-        public override void OnListPlayers(List<CPlayerInfo> lstPlayers, CPlayerSubset cpsSubset) {
+
+        public override void OnListPlayers(List<CPlayerInfo> lstPlayers, CPlayerSubset cpsSubset)
+        {
             if (cpsSubset.Subset == CPlayerSubset.PlayerSubsetType.All)
             {
                 this.m_iCurrentPlayerCount = lstPlayers.Count;
 
                 #region CheckServerSize
-                if (this.m_enServerSize == enumBoolYesNo.Yes) {
+                if (this.m_enServerSize == enumBoolYesNo.Yes)
+                {
                     if (this.m_isPluginInitialized == false)
                     {
                         if (this.m_enAssumeMax == enumBoolYesNo.Yes)
@@ -731,7 +767,7 @@ namespace PRoConEvents {
                         {
                             this.m_iServerSizeAtStart = this.m_iCurrentServerSize;
                         }
-                        this.m_lLastLevelLoaded = DateTime.UtcNow.Ticks/10000000 - this.m_iCurrentRoundTime;
+                        this.m_lLastLevelLoaded = DateTime.UtcNow.Ticks / 10000000 - this.m_iCurrentRoundTime;
                         this.m_isPluginInitialized = true;
                     }
                     else if (this.m_iServerSizeAtStart == 0 && this.m_iCurrentRoundTime >= 0)
@@ -748,15 +784,15 @@ namespace PRoConEvents {
                                 this.m_DPlayerJoined.Remove(cpiPlayer.SoldierName);
                             }
                         }
-                        foreach (KeyValuePair<string, long> pair in this.m_DPlayerJoined)
+                        foreach (KeyValuePair<String, Int64> pair in this.m_DPlayerJoined)
                         {
-                            if (pair.Value + 30 < DateTime.UtcNow.Ticks/10000000)
+                            if (pair.Value + 30 < DateTime.UtcNow.Ticks / 10000000)
                             {
                                 this.m_DPlayerJoined.Remove(pair.Key);
                                 //WritePluginConsole("Player hold expired: " + pair.Key);
                             }
                         }
-                        if (this.m_enShowMessages == enumBoolYesNo.Yes && this.m_lLastMessage + 30 < DateTime.UtcNow.Ticks/10000000 && this.m_iCurrentPlayerCount <= this.m_iMessageMaxUsers && this.m_DPlayerJoined.Count > 0)
+                        if (this.m_enShowMessages == enumBoolYesNo.Yes && this.m_lLastMessage + 30 < DateTime.UtcNow.Ticks / 10000000 && this.m_iCurrentPlayerCount <= this.m_iMessageMaxUsers && this.m_DPlayerJoined.Count > 0)
                         {
                             if (this.m_sOnJoin1.CompareTo("") != 0)
                             {
@@ -766,7 +802,7 @@ namespace PRoConEvents {
                             {
                                 this.ExecuteCommand("procon.protected.tasks.add", "CAdaptiveServerSize", "5", "1", "1", "procon.protected.plugins.call", "CAdaptiveServerSize", "WriteMessage", this.m_sOnJoin2.Replace("[joinCount]", this.m_DPlayerJoined.Count.ToString()));
                             }
-                            this.m_lLastMessage = DateTime.UtcNow.Ticks/10000000;
+                            this.m_lLastMessage = DateTime.UtcNow.Ticks / 10000000;
                         }
 
                         CheckServerSize();
@@ -786,9 +822,12 @@ namespace PRoConEvents {
                     else if (this.m_iCurrentPlayerCount < this.m_iDisableIdleKickUntil && this.m_iCurrentIdleKick != 0)
                     {
                         WritePluginConsole("WORK -> " + this.m_iCurrentPlayerCount + " players online. Idle kick disabled.");
-                        if (this.m_strServerGameType == "bf4" || this.m_strServerGameType == "bfhl") {
+                        if (this.m_strServerGameType == "bf4" || this.m_strServerGameType == "bfhl")
+                        {
                             this.ExecuteCommand("procon.protected.send", "vars.idleTimeout", "86400");
-                        } else {
+                        }
+                        else
+                        {
                             this.ExecuteCommand("procon.protected.send", "vars.idleTimeout", "0");
                         }
                         this.m_iCurrentIdleKick = 0;
@@ -797,30 +836,33 @@ namespace PRoConEvents {
                 #endregion
             }
         }
-        
-        public override void OnPlayerLimit(int limit) {
-            if (this.m_enServerSize == enumBoolYesNo.Yes) {
+
+        public override void OnPlayerLimit(Int32 limit)
+        {
+            if (this.m_enServerSize == enumBoolYesNo.Yes)
+            {
                 this.m_iCurrentServerSize = limit;
             }
         }
 
-        public override void OnPlayerJoin(string soldierName)
+        public override void OnPlayerJoin(String soldierName)
         {
-            if (this.m_enServerSize == enumBoolYesNo.Yes) {
+            if (this.m_enServerSize == enumBoolYesNo.Yes)
+            {
                 //WritePluginConsole("Player joining; hold added: " + soldierName);
                 if (this.m_DPlayerJoined.ContainsKey(soldierName))
                 {
-                    this.m_DPlayerJoined[soldierName] = DateTime.UtcNow.Ticks/10000000;
+                    this.m_DPlayerJoined[soldierName] = DateTime.UtcNow.Ticks / 10000000;
                 }
                 else
                 {
-                    this.m_DPlayerJoined.Add(soldierName, DateTime.UtcNow.Ticks/10000000);
+                    this.m_DPlayerJoined.Add(soldierName, DateTime.UtcNow.Ticks / 10000000);
                     if (this.m_isPluginInitialized && !this.m_blRoundEnded)
                     {
                         CheckServerSize();
                     }
                 }
-                if (this.m_enShowMessages == enumBoolYesNo.Yes && this.m_lLastMessage + 15 < DateTime.UtcNow.Ticks/10000000 && this.m_iCurrentPlayerCount <= this.m_iMessageMaxUsers && this.m_DPlayerJoined.Count > 0)
+                if (this.m_enShowMessages == enumBoolYesNo.Yes && this.m_lLastMessage + 15 < DateTime.UtcNow.Ticks / 10000000 && this.m_iCurrentPlayerCount <= this.m_iMessageMaxUsers && this.m_DPlayerJoined.Count > 0)
                 {
                     if (this.m_sOnJoin1.CompareTo("") != 0)
                     {
@@ -830,12 +872,13 @@ namespace PRoConEvents {
                     {
                         this.ExecuteCommand("procon.protected.tasks.add", "CAdaptiveServerSize", "5", "1", "1", "procon.protected.plugins.call", "CAdaptiveServerSize", "WriteMessage", this.m_sOnJoin2.Replace("[joinCount]", this.m_DPlayerJoined.Count.ToString()));
                     }
-                    this.m_lLastMessage = DateTime.UtcNow.Ticks/10000000;
+                    this.m_lLastMessage = DateTime.UtcNow.Ticks / 10000000;
                 }
             }
         }
 
-        public override void OnPlayerTeamChange(string soldierName, int teamId, int squadId) {
+        public override void OnPlayerTeamChange(String soldierName, Int32 teamId, Int32 squadId)
+        {
             if (this.m_enShowMessages == enumBoolYesNo.Yes && this.m_enServerSize == enumBoolYesNo.Yes && this.m_iCurrentPlayerCount < this.m_iMessageMaxUsers && !this.m_LStartMessageShown.Contains(soldierName))
             {
                 this.m_LStartMessageShown.Add(soldierName);
@@ -850,7 +893,8 @@ namespace PRoConEvents {
             }
         }
 
-        public override void OnPlayerLeft(CPlayerInfo playerInfo) {
+        public override void OnPlayerLeft(CPlayerInfo playerInfo)
+        {
             if (this.m_enServerSize == enumBoolYesNo.Yes && this.m_isPluginInitialized && !this.m_blRoundEnded)
             {
                 if (this.m_DPlayerJoined.ContainsKey(playerInfo.SoldierName))
@@ -869,9 +913,10 @@ namespace PRoConEvents {
             }
         }
 
-      #endregion
+        #endregion
 
-        public void SetMaxTemp() {
+        public void SetMaxTemp()
+        {
             if (this.m_iCurrentServerSize != this.m_iMaxServerSize)
             {
                 WritePluginConsole("WORK -> Server size changed to maximum value (" + this.m_iMaxServerSize + " players) temporarily.");
@@ -879,9 +924,10 @@ namespace PRoConEvents {
             }
         }
 
-        private void CheckServerSize() {
+        private void CheckServerSize()
+        {
             this.m_iDesiredServerSize = Math.Min(this.m_iCurrentGameModeMax, this.m_iPlayerServerSize[Math.Min(this.m_iCurrentPlayerCount + this.m_DPlayerJoined.Count, this.m_iMaxServerSize)]);
-            if (this.m_strServerGameType != "bfhl" && (this.m_iCurrentPlayerCount == 0 || DateTime.UtcNow.Ticks/10000000 - this.m_lLastLevelLoaded < 5) && !this.m_blRestartRequested && this.m_iServerSizeAtStart < this.m_iMaxServerSize && !this.m_blRoundEnded && this.m_iServerSizeAtStart > 0)
+            if (this.m_strServerGameType != "bfhl" && (this.m_iCurrentPlayerCount == 0 || DateTime.UtcNow.Ticks / 10000000 - this.m_lLastLevelLoaded < 5) && !this.m_blRestartRequested && this.m_iServerSizeAtStart < this.m_iMaxServerSize && !this.m_blRoundEnded && this.m_iServerSizeAtStart > 0)
             {
                 WritePluginConsole("WORK -> " + this.m_iCurrentPlayerCount + " players online. " + this.m_DPlayerJoined.Count + " players joining. Round started at " + this.m_iServerSizeAtStart + ". Restarting round at max server size.");
                 this.m_blRestartRequested = true;
@@ -917,37 +963,38 @@ namespace PRoConEvents {
             }
         }
 
-#region helper_functions
+        #region helper_functions
 
-        private void WritePluginConsole(string message)
+        private void WritePluginConsole(String message)
         {
-            string line = String.Format("AdaptiveServerSize: {0}", message);
-            if (this.m_enDoDebugOutput == enumBoolYesNo.Yes) { 
+            String line = String.Format("AdaptiveServerSize: {0}", message);
+            if (this.m_enDoDebugOutput == enumBoolYesNo.Yes)
+            {
                 this.ExecuteCommand("procon.protected.pluginconsole.write", line);
             }
         }
 
-        public void WriteMessage(string message)
+        public void WriteMessage(String message)
         {
-            List<string> wordWrappedLines = this.WordWrap(message, 100);
-            foreach (string line in wordWrappedLines)
+            List<String> wordWrappedLines = this.WordWrap(message, 100);
+            foreach (String line in wordWrappedLines)
             {
-                string formattedLine = String.Format("{0}", line);
+                String formattedLine = String.Format("{0}", line);
                 this.ExecuteCommand("procon.protected.send", "admin.say", formattedLine, "all");
             }
         }
 
-        public void WriteMessagePlayer(string message, string player)
+        public void WriteMessagePlayer(String message, String player)
         {
-            List<string> wordWrappedLines = this.WordWrap(message, 100);
-            foreach (string line in wordWrappedLines)
+            List<String> wordWrappedLines = this.WordWrap(message, 100);
+            foreach (String line in wordWrappedLines)
             {
-                string formattedLine = String.Format("{0}", line);
+                String formattedLine = String.Format("{0}", line);
                 this.ExecuteCommand("procon.protected.send", "admin.say", formattedLine, "player", player);
             }
         }
 
-#endregion
+        #endregion
 
     }
 }
