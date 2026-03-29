@@ -19,12 +19,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.IO;
-using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
 
 using PRoCon.Core;
 using PRoCon.Core.Battlemap;
@@ -186,7 +180,6 @@ namespace PRoConEvents
     </td>
     </tr>
     </table>
-
 
 <h2>Description</h2>
     <p>This plug-in is intended to change the server size adaptively based upon the number of players currently on the server. The player count and desired server size is reevaluated when a player joins or leaves and changes occur dynamically throughout each round. When calculating the current number of players, the plug-in includes players who are joining the game, but are not in the PRoCon player list, in order to attempt to mimic the number displayed on Battlelog. Due to the fact that player timeouts aren't reported to PRoCon, it's not perfect, but it's accurate 80-90% of the time.</p>
